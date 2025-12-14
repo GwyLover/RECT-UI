@@ -1,0 +1,10 @@
+menu\mui_u8g2.o: ..\Drivers\U8g2\mui_u8g2.c
+menu\mui_u8g2.o: ..\Drivers\U8g2\mui.h
+menu\mui_u8g2.o: D:\newapp\keli5\ARM\ARMCC\Bin\..\include\stddef.h
+menu\mui_u8g2.o: D:\newapp\keli5\ARM\ARMCC\Bin\..\include\stdint.h
+menu\mui_u8g2.o: D:\newapp\keli5\ARM\ARMCC\Bin\..\include\string.h
+menu\mui_u8g2.o: ..\Drivers\U8g2\u8g2.h
+menu\mui_u8g2.o: ..\Drivers\U8g2\u8x8.h
+menu\mui_u8g2.o: D:\newapp\keli5\ARM\ARMCC\Bin\..\include\stdarg.h
+menu\mui_u8g2.o: D:\newapp\keli5\ARM\ARMCC\Bin\..\include\limits.h
+menu\mui_u8g2.o: ..\Drivers\U8g2\mui_u8g2.h
