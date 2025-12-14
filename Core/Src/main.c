@@ -25,18 +25,16 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "u8g2.h"
-#include "key.h"
+#include "u8g2.h"												//导入u8g2库
+#include "key.h"												//自定义按键
 #include "string.h"
 #include <math.h>
-#include "encoder.h"
+#include "encoder.h"										//自定义旋转编码器
 #include "stdio.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
-#define OLED_I2C_ADDR   (0x3C<<1)
 
 /* USER CODE END PTD */
 
@@ -53,7 +51,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-u8g2_t u8g2;
+u8g2_t u8g2;														//u8g2句柄
+#define OLED_I2C_ADDR   (0x3C<<1)				//OLED地址
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -64,8 +63,8 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t u8x8_byte_hw_i2c(u8x8_t *u8x8,
-                         uint8_t msg, uint8_t arg_int, void *arg_ptr)
+																				//硬件II2
+uint8_t u8x8_byte_hw_i2c(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_ptr)	
 {
     static uint8_t  buffer[128];
     static uint8_t  buf_idx;
@@ -93,8 +92,8 @@ uint8_t u8x8_byte_hw_i2c(u8x8_t *u8x8,
     return 1;
 }
 
-uint8_t u8x8_gpio_and_delay_stm32f1(u8x8_t *u8x8,
-                                    uint8_t msg, uint8_t arg_int, void *arg_ptr)
+																				//u8g2延时函数
+uint8_t u8x8_gpio_and_delay_stm32f1(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_ptr)
 {
     switch(msg)
     {
@@ -110,14 +109,14 @@ uint8_t u8x8_gpio_and_delay_stm32f1(u8x8_t *u8x8,
     return 1;
 }
 
-void u8g2_init(void){															//u8g2初始化
+void u8g2_init(void){										//u8g2初始化
 	u8g2_Setup_ssd1306_i2c_128x64_noname_f(&u8g2,U8G2_R0,u8x8_byte_hw_i2c,u8x8_gpio_and_delay_stm32f1);		//硬件IIC
 	u8g2_InitDisplay(&u8g2);
   u8g2_SetPowerSave(&u8g2, 0); 
 }
 
-
-void animation(float *a, float *a_trg,int16_t n)	//动画函数
+																				//动画函数
+void animation(float *a, float *a_trg,int16_t n)	
 {
   if (*a != *a_trg)
   {
@@ -126,9 +125,11 @@ void animation(float *a, float *a_trg,int16_t n)	//动画函数
   }
 }
 
-#define img_width 30							
-#define img_height 30
-static uint8_t menu_img1[] = {		
+#define img_width 30										//菜单图标宽度
+#define img_height 30										//菜单图标高度
+
+																				//菜单图标
+static uint8_t menu_img1[] = {					
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
   0x00, 0xff, 0x3f, 0x00, 0xc0, 0xff, 0xff, 0x00, 
   0xc0, 0xff, 0xff, 0x00, 0xe0, 0xff, 0xff, 0x01, 
@@ -238,71 +239,71 @@ static uint8_t menu_img6[] = {
 
 																	
 static uint8_t *menu_imgs[] = {
-	menu_img1,										//设置图标
-	menu_img2,										//文件夹图标
-	menu_img3,										//游戏图标
-	menu_img4,										//空白图标
-	menu_img5,										//空白图标
-	menu_img6,										//空白图标
-};
+	menu_img1,														//设置图标
+	menu_img2,														//文件夹图标
+	menu_img3,														//游戏图标
+	menu_img4,														//空白图标
+	menu_img5,														//空白图标
+	menu_img6,														//空白图标
+};				
+				
+#define MENU_NUM 6											//菜单元素数目
+#define SETTING_NUM 2										//设置元素数目
+#define FOLDER_NUM 9										//文件夹元素数目
+#define GAME_NUM 3											//游戏元素数目
+				
+int16_t keynum = 0;											//按键值(有前进后退两个按键)
+int16_t encodernum;											//旋钮值
+int16_t state = 0;											//当前页面(对应enum菜单层级的内容)
+int16_t previous_state = 0;							//前一个页面(对应enum菜单层级的内容)
+struct tm timedate;											//时间
 
-#define MENU_NUM 6							//菜单数目
-#define SETTING_NUM 2						//设置数目
-#define FOLDER_NUM 9						//文件夹数目
-#define GAME_NUM 3							//游戏数目
-
-int16_t keynum = 0;							//按键值
-int16_t encodernum;							//旋钮值
-int16_t state = 0;							//当前页面
-int16_t previous_state = 0;			//前一个页面
-struct tm timedate;							//时间
-
-enum 														//菜单层级
+enum 																		//菜单层级
 {
-  M_OPEN,
-		M_MENU,
-			M_SETTING,
-			M_FOLDER,
-			M_GAME,
-				M_WINDOW,
+  M_OPEN,																//开机动画
+		M_MENU,															//菜单
+			M_SETTING,												//设置
+			M_FOLDER,													//文件夹
+			M_GAME,														//游戏
+				M_WINDOW,												//弹窗
 };
 
-typedef struct fps{							//帧率结构体
+typedef struct fps{											//帧率结构体(由于设置的定时时间是0.2s，所有需要b+5次a读取一次)
 	uint16_t a;
 	uint16_t b;
 }FPS;
 
-typedef	struct frame{						//矩形框结构体
-	float frame_x;
-	float frame_y;
-	float frame_w;
-	float frame_h;
-	float frame_old_x;
-	float frame_old_y;
-	float frame_old_w;
-	float frame_old_h;
+typedef	struct frame{										//矩形结构体(所有显示内容都是通过这个结构体实现的)
+	float frame_x;												//目标x
+	float frame_y;												//目标y
+	float frame_w;												//目标w
+	float frame_h;												//目标h
+	float frame_old_x;										//目标x
+	float frame_old_y;										//当前y
+	float frame_old_w;										//当前w
+	float frame_old_h;										//当前h
 }FRAME;
 
-typedef	struct text{						//文本结构体
-	char *str;
-	int select;
-	int value;
+typedef	struct text{										//文本结构体(用于和矩形结构体结合显示文字内容)
+	char *str;														//文字
+	int select;														//点击确定之后会进入的页面(对应enum菜单层级的内容)
+	int value;														//显示该文本对应的数值，值为0-100，填-1表示该文本不显示数值
 }TEXT;
 
-typedef	struct m_state{					//状态结构体
-	int select;
-	int state;
-	int previous;
-	int number;
-	int list_num;
-	TEXT *list_text;
-	FRAME *m_lists;
-	void (*m_init)(FRAME *m_lists,TEXT *list_text,int LIST_NUM);   
+typedef	struct m_state{									//页面状态结构体
+	int select;														//该页面点击确定之后会进入的页面(对应enum菜单层级的内容)
+	int state;														//当前页面状态，0是不在运行，1是在运行，同一时间只有一个1
+	int previous;													//上一个页面对应的enum值
+	int number;														//如果该页面有多个元素，记录该页面选中的是哪一个元素
+	int list_num;													//该页面有几个元素(主要是为了将相似的SETTING,FOLDER,GAME页面功能合并在一起，只需要传入该结构体就可以区分这三个页面)
+	TEXT *list_text;											//文本结构体
+	FRAME *m_lists;												//矩形结构体
+	void (*m_init)(FRAME *m_lists,TEXT *list_text,int LIST_NUM);   //用于SETTING,FOLDER,GAME页面，记录初始化函数
 }M_STATE;
 
-FPS fps;
+FPS fps;																//fps结构体实例化
 
-TEXT menu_text[] = {						//菜单文本
+TEXT menu_text[] = {										//菜单文本
 	{"Setting",2,-1},
 	{"Folder",3,-1},
 	{"Game",4,-1},
@@ -311,12 +312,12 @@ TEXT menu_text[] = {						//菜单文本
 	{"None",1,-1},
 };
 
-TEXT setting_text[] = {					//设置文本
+TEXT setting_text[] = {									//设置文本
 	{"reset",0,-1},
 	{"light",5,100},
 };
 
-TEXT folder_text[] = {					//文件夹文本
+TEXT folder_text[] = {									//文件夹文本
 	{"Text1",3,-1},
 	{"Tggt2",3,-1},
 	{"Text3",3,-1},
@@ -328,28 +329,28 @@ TEXT folder_text[] = {					//文件夹文本
 	{"????",3,-1},
 };
 
-TEXT game_text[] = {						//游戏文本
+TEXT game_text[] = {										//游戏文本
 	{"Snake",4,-1},
 	{"Game of Life",4,-1},
 	{"Dinosaur Running",4,-1},
 };
 
-FRAME frame_list[4];						//开机动画
+FRAME frame_list[4];										//开机动画
+				
+FRAME menu_name;												//菜单名
+FRAME m_menus[MENU_NUM];								//菜单图标
+FRAME frame;														//选中光标
+FRAME slider;														//右侧进度条
+				
+FRAME m_folders[FOLDER_NUM];						//文件夹列表
+FRAME m_settings[SETTING_NUM];					//设置列表
+FRAME m_games[GAME_NUM];								//游戏列表
+				
+FRAME m_window;													//弹窗
 
-FRAME menu_name;								//菜单名
-FRAME m_menus[MENU_NUM];				//菜单图标
-FRAME frame;										//光标
-FRAME slider;										//滑块
+M_STATE m_states[6];										//页面状态
 
-FRAME m_folders[FOLDER_NUM];		//文件夹列表
-FRAME m_settings[SETTING_NUM];	//设置列表
-FRAME m_games[GAME_NUM];				//游戏列表
-
-FRAME m_window;									//弹窗
-
-M_STATE m_states[6];
-
-void open_init(void){						//开机动画初始化
+void open_init(void){										//开机动画初始化
 	for(int16_t i =0;i<4;i++){
 		frame_list[i].frame_x = -2;
 		frame_list[i].frame_y = i*16;
@@ -362,13 +363,12 @@ void open_init(void){						//开机动画初始化
 	}
 }
 
-void menu_init(void){						//菜单初始化
+void menu_init(void){										//菜单初始化
 	for(int16_t i =0;i<MENU_NUM;i++){
 		m_menus[i].frame_x = 0;
 		m_menus[i].frame_y = 22;
 		m_menus[i].frame_old_x = 128 + i*40;
 		m_menus[i].frame_old_y = 22;
-
 	}
 	
 	menu_name.frame_x = 49;
@@ -377,7 +377,8 @@ void menu_init(void){						//菜单初始化
 	menu_name.frame_old_y = 75;
 }
 
-void list_init(FRAME *m_lists,TEXT *list_text,int LIST_NUM){				//列表初始化
+																				//列表初始化(将SETTING,FOLDER,GAME统一为列表)
+void list_init(FRAME *m_lists,TEXT *list_text,int LIST_NUM){				
 	for(int16_t i =0;i<LIST_NUM;i++){
 		m_lists[i].frame_x = -6*(int)strlen(list_text[i].str);
 		m_lists[i].frame_y = 11 + 16*i;
@@ -404,7 +405,7 @@ void list_init(FRAME *m_lists,TEXT *list_text,int LIST_NUM){				//列表初始�
 	slider.frame_old_h = 0;
 }
 
-void window_init(void){					//弹窗初始化
+void window_init(void){									//弹窗初始化
 	m_window.frame_x = 24;
 	m_window.frame_y = -34;
 	m_window.frame_w = 80;
@@ -415,12 +416,13 @@ void window_init(void){					//弹窗初始化
 	m_window.frame_old_h = 32;
 }
 
-void state_init(void){					//页面状态初始化
+void state_init(void){									//页面状态初始化
 	for(int i = 0;i<6;i++){
 		m_states[i].state = 0; 
 		m_states[i].number = 0; 
 	}
 	
+																				//对SETTING,FOLDER,GAME特殊处理
 	m_states[M_SETTING].list_num = SETTING_NUM;
 	m_states[M_SETTING].m_lists = m_settings;
 	m_states[M_SETTING].list_text = setting_text;
@@ -437,7 +439,7 @@ void state_init(void){					//页面状态初始化
 	m_states[M_GAME].m_init = list_init;
 }
 
-void show_fps(void){						//获取帧率
+void show_fps(void){										//获取帧率
 	static char buf[32];
 	if(fps.a > 5){
 		sprintf(buf, "fps:%d", fps.b);
@@ -448,24 +450,24 @@ void show_fps(void){						//获取帧率
 	u8g2_DrawStr(&u8g2,91,10,buf);
 }
 
-void show_time(void){						//获取时间
+void show_time(void){										//获取时间，时间计算的函数位于rtc.c最末尾
 	static char buf[32];
 	My_Rtime(&timedate);
 	sprintf(buf, "%02d:%02d", timedate.tm_hour - 8,timedate.tm_min);
 	u8g2_DrawStr(&u8g2,0,10,buf);
 }
 
-void open_animation(void){
-	static int16_t over = 1;
+void open_animation(void){							//开机动画
+	static int16_t over = 1;							//开机动画有两部分，判断前一部分是否结束
 	
-	if(!m_states[M_OPEN].state){
+	if(!m_states[M_OPEN].state){					//判断该页面是否是初次进入，是则初始化
 		m_states[M_OPEN].state = 1;
 		m_states[M_OPEN].select = M_OPEN;
 		m_states[M_OPEN].previous = M_OPEN;
 		open_init();
 	}
 	
-	if(over){
+	if(over){															//将动画分为两部分
 		for(int16_t i =0;i<4;i++){
 			if(i == 0 || frame_list[i-1].frame_old_w > (frame_list[i-1].frame_w/2))frame_list[i].frame_w = 132;
 			animation(&frame_list[i].frame_old_w,&frame_list[i].frame_w,70);
@@ -477,13 +479,15 @@ void open_animation(void){
 		}
 	}
 	
+																				//这里判断动画是否结束，进入下一个页面
 	if(frame_list[3].frame_old_w == 132)over = 0;
 	if(over == 0 && frame_list[3].frame_old_w == 0){state = M_MENU;over = 1;m_states[M_OPEN].state = 0;}
 	
-	u8g2_SetFont(&u8g2, u8g2_font_9x18B_mf); 	//设置字体
+																				//设置字体类型
+	u8g2_SetFont(&u8g2, u8g2_font_9x18B_mf); 	
 	u8g2_DrawStr(&u8g2, 33, 38, "RECT UI");
-	u8g2_SetDrawColor(&u8g2, 2);   // 参数 1 或 2
 	
+	u8g2_SetDrawColor(&u8g2, 2);   				// 参数0画黑色，参数1画白色，参数2反色，实现重叠部分字体反色
 	if(over){
 		for(uint16_t i=0;i<4;i++){
 			u8g2_DrawBox(&u8g2, (int)frame_list[i].frame_old_x, (int)frame_list[i].frame_old_y, (int)frame_list[i].frame_old_w, (int)frame_list[i].frame_old_h); 
@@ -495,22 +499,23 @@ void open_animation(void){
 	}
 }
 
-void menu_animation(void){			//菜单显示
-	static int16_t menunum = 0;
+void menu_animation(void){							//菜单显示
+	static int16_t menunum = 0;						//记录选中项
 	
+																				//是否是第一次进入，执行初始化，并且判断前一个状态和当前是否相同，避免在当前页面点击无效按钮的时候触发初始化
 	if( previous_state != state && !m_states[M_MENU].state){
 		m_states[M_MENU].state = 1;
 		m_states[M_MENU].previous = M_MENU;
 		menu_init();
 	}
 	
-	if(encodernum){
+	if(encodernum){												//读取编码器值
 		if(encodernum < 0 && menunum > 0)menunum --;
 		if(encodernum > 0 && menunum < MENU_NUM-1)menunum ++;
 		encodernum = 0;
 	}
 	
-	for(int16_t i =0;i<MENU_NUM;i++){
+	for(int16_t i =0;i<MENU_NUM;i++){			//配置动画
 		m_menus[i].frame_x = 49+40*(i-menunum);
 		if(i != menunum)m_menus[i].frame_y = 22;
 		else m_menus[menunum].frame_y = 12;
@@ -526,20 +531,24 @@ void menu_animation(void){			//菜单显示
 	animation(&menu_name.frame_old_y,&menu_name.frame_y,20);
 
 	u8g2_SetFont(&u8g2, u8g2_font_6x10_mf); 
-	show_fps();
-	show_time();
-	for(int i=0;i<MENU_NUM;i++){
+	show_fps();														//显示帧率
+	show_time();													//显示时间
+	for(int i=0;i<MENU_NUM;i++){					//绘制内容
 		u8g2_DrawXBM(&u8g2, (int)m_menus[i].frame_old_x, (int)m_menus[i].frame_old_y, img_width, img_height, menu_imgs[i]);
 	}
 	u8g2_DrawStr(&u8g2, (int)menu_name.frame_old_x, (int)menu_name.frame_old_y, menu_text[menunum].str);
 	
+																				//记录当前选中的元素所对应的下一个页面的enum值
 	m_states[M_MENU].select = menu_text[menunum].select;
 }
 
+																				//列表动画
 void list_animation(int list_state, TEXT *list_text, FRAME *m_lists){
-	static int16_t listnum = 0;
-	static int16_t framenum = 0;
+	static int16_t listnum = 0;						//当前选中项
+	static int16_t framenum = 0;					//选中光标的位置
 
+																				//是否是第一次进入，执行初始化，并且判断前一个状态和当前是否相同，
+																				//避免在当前页面点击无效按钮的时候触发初始化，对弹窗页面特殊判断，因为弹窗页面也会使用该函数
 	if( previous_state != state && state != M_WINDOW && !m_states[list_state].state){
 		listnum = 0;
 		framenum = 0;
@@ -549,7 +558,7 @@ void list_animation(int list_state, TEXT *list_text, FRAME *m_lists){
 		m_states[list_state].m_init(m_lists,list_text,m_states[list_state].list_num);
 	}
 	
-	if(state != M_WINDOW && encodernum){
+	if(state != M_WINDOW && encodernum){	//当通过弹窗页面进入的时候，旋转编码器控制的是弹窗函数里面的数值，所以禁用这里的
 		if(encodernum < 0 && listnum > 0){
 			listnum --;
 			if(framenum > 0)framenum --;
@@ -561,6 +570,7 @@ void list_animation(int list_state, TEXT *list_text, FRAME *m_lists){
 		encodernum = 0;
 	}
 	
+																				//配置动画
 	for(int16_t i =0;i<m_states[list_state].list_num;i++){
 		m_lists[i].frame_y = 11+16*(i-(listnum-framenum));
 		m_lists[i].frame_x = 7;
@@ -575,20 +585,23 @@ void list_animation(int list_state, TEXT *list_text, FRAME *m_lists){
 	animation(&slider.frame_old_h,&slider.frame_h,30);
 	
 	u8g2_SetFont(&u8g2, u8g2_font_6x10_mf);
+																				//绘制动画
 	for(uint16_t i=0;i<m_states[list_state].list_num;i++){
 		char buf[12];
 		sprintf(buf,"%d",list_text[i].value);
 		u8g2_DrawStr(&u8g2, (int)m_lists[i].frame_old_x, (int)m_lists[i].frame_old_y, list_text[i].str);
+																				//特殊判断，只有文本参数值大于0才显示
 		if(list_text[i].value >= 0)u8g2_DrawStr(&u8g2, (int)(110 - m_lists[i].frame_old_x), (int)m_lists[i].frame_old_y, buf);
 	}
 	u8g2_DrawRBox(&u8g2, (int)slider.frame_old_x, (int)slider.frame_old_y, (int)slider.frame_old_w, (int)slider.frame_old_h,0); 
 	u8g2_SetDrawColor(&u8g2, 2);
 	u8g2_DrawRBox(&u8g2, (int)frame.frame_old_x, (int)frame.frame_old_y, (int)frame.frame_old_w, (int)frame.frame_old_h,0); 
 	
+																				//记录当前选中的元素所对应的下一个页面的enum值
 	m_states[list_state].select = list_text[listnum].select;
-	m_states[list_state].number = listnum;
+	m_states[list_state].number = listnum;//记录当前选中元素的列表序号
 }
-
+																				//弹窗显示动画
 void window_animation(int previous_state, TEXT *list_text, FRAME *m_lists, int list_num){
 	if(!m_states[state].state){
 		m_states[state].state = 1;
@@ -604,7 +617,6 @@ void window_animation(int previous_state, TEXT *list_text, FRAME *m_lists, int l
 		if(encodernum > 0 && list_text[list_num].value < 100){
 			list_text[list_num].value ++;
 		}
-//		encodernum = 0;
 	}
 		
 	m_window.frame_y = 16;
@@ -625,6 +637,7 @@ void window_animation(int previous_state, TEXT *list_text, FRAME *m_lists, int l
 	u8g2_SetContrast(&u8g2,51*list_text[list_num].value/20);
 }
 
+																				//每0.2s中断一次，记录fps和读取旋转编码器
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	if(htim == &htim2){
 		fps.a++;
@@ -662,31 +675,35 @@ int main(void)
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
-  MX_GPIO_Init();
+  MX_GPIO_Init();											
   MX_I2C1_Init();
   MX_TIM2_Init();
   MX_TIM3_Init();
   MX_RTC_Init();
   /* USER CODE BEGIN 2 */
-	u8g2_init();
-	encoder_init();
-	state_init();
+	u8g2_init();													//u8g2初始化
+	encoder_init();												//旋转编码器初始化
+	state_init();													//页面状态初始化
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-	HAL_TIM_Base_Start_IT(&htim2);
+	HAL_TIM_Base_Start_IT(&htim2);				//开启TIM中断
   while (1)
   {
-		keynum = key_scanf();
+		keynum = key_scanf();								//读取按键
 		if(keynum){
-			m_states[state].state = 0;
+			m_states[state].state = 0;				//将所有页面状态清0，让对应页面自己置1
+																				//记录上一个页面，排除弹窗页面，因为previous_state用于传递给列表动画让其判断弹窗是从SETTINF,FOLDER,GAME哪一个页面进入的，
+																				//如果再在弹窗页面点一次按钮previous_state就变成了M_WINDOW，list_animation就不知道是哪个页面了
 			if(state != M_WINDOW)previous_state = state;
+																				//前进
 			if(keynum == 1)state = m_states[state].select;
+																				//后退
 			if(keynum == 2)state = m_states[state].previous;
 		}
 
-		u8g2_ClearBuffer(&u8g2);
+		u8g2_ClearBuffer(&u8g2);						//清空页面
 		
 		switch(state){
 			case M_OPEN: open_animation();           	break;
@@ -695,7 +712,7 @@ int main(void)
 			case M_FOLDER:
 			case M_GAME:
 			case M_WINDOW:				
-				if(state == M_WINDOW){
+				if(state == M_WINDOW){					//因为弹窗和列表是同时显示的，所以特殊判断
 					list_animation(previous_state, m_states[previous_state].list_text,m_states[previous_state].m_lists);
 					window_animation(previous_state,m_states[previous_state].list_text,m_states[previous_state].m_lists,m_states[previous_state].number);
 				}else{
@@ -704,7 +721,7 @@ int main(void)
 																								break;
 		}
 		
-		u8g2_SendBuffer(&u8g2); 
+		u8g2_SendBuffer(&u8g2); 						//绘制页面
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
